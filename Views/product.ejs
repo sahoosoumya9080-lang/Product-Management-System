@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Product Management System</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.js"
+      integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
+      crossorigin="anonymous"></script>
+  <style>
+    /* ---------- Global Styles ---------- */
+    body {
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(135deg, #e0eafc, #cfdef3);
+      margin: 0;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 950px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 30px;
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #222;
+      text-align: center;
+    }
+
+    /* ---------- Form ---------- */
+    .form-group {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .form-group input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.15);
+    }
+
+    #btn {
+      width: 100%;
+      padding: 12px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    #btn:hover {
+      background: #0056b3;
+      transform: scale(1.02);
+    }
+
+    /* ---------- Search ---------- */
+    #searchBox {
+      width: 100%;
+      padding: 12px;
+      margin: 20px 0;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+
+    /* ---------- Table ---------- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: #007bff;
+      color: white;
+    }
+
+    th, td {
+      padding: 14px;
+      text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    tbody tr:hover {
+      background: #eef4ff;
+    }
+
+    /* ---------- Action Buttons ---------- */
+    .btn-action {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin: 2px;
+      transition: all 0.2s;
+    }
+
+    .btn-edit {
+      background: #17a2b8;
+      color: white;
+    }
+    .btn-edit:hover {
+      background: #11707f;
+    }
+
+    .btn-delete {
+      background: #dc3545;
+      color: white;
+    }
+    .btn-delete:hover {
+      background: #a71d2a;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+
+    /* ---------- Toast Notifications ---------- */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      transform: translateY(-20px);
+      z-index: 999;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📦 Product Management</h2>
+
+    <input type="text" name="ProdId" id="ProdId" hidden>
+
+    <div class="form-group">
+      <input type="text" id="ProdName" placeholder="Enter Product Name">
+      <input type="text" id="ProdDescription" placeholder="Enter Product Description">
+      <input type="number" id="ProdPrice" placeholder="Enter Product Price">
+    </div>
+    <input type="submit" id="btn" value="Add Product">
+
+    <input type="text" id="searchBox" placeholder="🔍 Search products...">
+
+    <table>
+      <thead>
+        <tr>
+          <th>Sl No</th>
+          <th>Product Name</th>
+          <th>Description</th>
+          <th>Price</th>
+          <th style="text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // Show Toast Notification
+    function showToast(message, color="#333") {
+      let toast = $("#toast");
+      toast.text(message).css("background", color).addClass("show");
+      setTimeout(()=> toast.removeClass("show"), 3000);
+    }
+
+    // Load Products
+    function loadProducts(){
+      $.ajax({
+        url:'/api/getProducts',
+        type:'get',
+        dataType:'json',
+        success:function(res){
+          let tb='';
+          if(res.length>0){
+            $.each(res,function(index,product){
+              tb += `<tr>
+                      <td>${index + 1}</td>
+                      <td>${product.ProdName}</td>
+                      <td>${product.ProdDescription}</td>
+                      <td>₹${product.ProdPrice}</td>
+                      <td style="text-align:center;">
+                        <button class="btn-action btn-edit" onclick="editProduct('${product._id}')">Edit</button>
+                        <button class="btn-action btn-delete" onclick="deleteProduct('${product._id}')">Delete</button>
+                      </td>
+                    </tr>`;
+            })
+          }else{
+            tb += `<tr><td colspan="5" class="no-data">No Products Found</td></tr>`;
+          }
+          $('#tb').html(tb);
+        }
+      });
+    }
+
+    // Add/Update Product
+    $(document).ready(function(){
+      loadProducts();
+
+      $('#btn').click(function(event){
+        event.preventDefault();
+        let btn=$('#btn').val();
+
+        // Validation
+        if(!$('#ProdName').val() || !$('#ProdDescription').val() || !$('#ProdPrice').val()){
+          showToast("⚠️ All fields are required","darkred");
+          return;
+        }
+
+        let url = btn=="Add Product" ? '/api/addProduct' : '/api/updateProduct';
+        let data = {
+          ProdId: $('#ProdId').val(),
+          ProdName: $('#ProdName').val(),
+          ProdDescription: $('#ProdDescription').val(),
+          ProdPrice: $('#ProdPrice').val()
+        };
+
+        $.ajax({
+          url:url,
+          type:'post',
+          dataType:'json',
+          data:data,
+          success:function(res){
+            showToast(res.message,"#007bff");
+            loadProducts();
+            $('#btn').val("Add Product");
+            $('#ProdId').val("");
+            $('#ProdName,#ProdDescription,#ProdPrice').val("");
+          }
+        });
+      });
+
+      // Live Search
+      $("#searchBox").on("keyup", function() {
+        let value = $(this).val().toLowerCase();
+        $("#tb tr").filter(function() {
+          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+      });
+    });
+
+    // Delete Product
+    function deleteProduct(id){
+      if(confirm("Are you sure you want to delete this product?")){
+        $.ajax({
+          url:`/api/deleteProduct/${id}`,
+          type:'get',
+          dataType:'json',
+          success:function(res){
+            showToast(res.message,"#dc3545");
+            loadProducts();
+          }
+        })
+      }
+    }
+
+    // Edit Product
+    function editProduct(id){
+      $.ajax({
+        url:`/api/fetchProduct/${id}`,
+        type:'get',
+        dataType:'json',
+        success:function(product){
+          $('#ProdId').val(product._id);
+          $('#ProdName').val(product.ProdName);
+          $('#ProdDescription').val(product.ProdDescription);
+          $('#ProdPrice').val(product.ProdPrice);
+          $('#btn').val('Update Product');
+        }
+      })
+    }
+  </script>
+</body>
+</html>
