@@ -13,7 +13,7 @@ app.set('views',path.resolve('./Views'));
 
 mongoose.connect('mongodb://127.0.0.1:27017/product_management_db')
 .then(() => {
-    console.log('Connected to MongoDB Successfully.....');
+    console.log('Connected to MongoDB Successfully....');
 })
 .catch((err) => {
     console.error('MongoDB connection error:', err);
